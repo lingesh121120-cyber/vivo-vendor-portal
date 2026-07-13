@@ -1,0 +1,16 @@
+# Firebase local cache / logs
+.firebase/
+*firebase-debug.log
+*database-debug.log
+.firebaserc.local
+
+# Dependencies (none used, but just in case)
+node_modules/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs & temp
+*.log
+*.tmp

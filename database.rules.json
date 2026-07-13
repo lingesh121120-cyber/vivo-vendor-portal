@@ -1,0 +1,16 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+
+    "vendors": {
+      ".read": "auth != null",
+      ".write": "auth != null",
+
+      "$vendorId": {
+        ".write": "auth != null || (!data.exists() && newData.exists())",
+        ".validate": "newData.hasChildren(['companyName', 'status'])"
+      }
+    }
+  }
+}

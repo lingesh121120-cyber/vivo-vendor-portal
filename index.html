@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Vendor Onboarding Form — Fangs Technology Pvt Ltd</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+  <!-- Firebase bridge (connects the app to the database + admin login) -->
+  <script type="module" src="firebase-init.js"></script>
+</head>
+<body>
+
+<!-- ══════════════════════════ AUTH GATE ══════════════════════════ -->
+<div class="auth-screen" id="authScreen">
+  <div class="auth-orb orb1"></div>
+  <div class="auth-orb orb2"></div>
+
+  <div class="auth-inner">
+    <div class="auth-brand">
+      <div class="auth-brand-logo">
+        <svg class="vivo-logo" viewBox="0 0 92 30" xmlns="http://www.w3.org/2000/svg"><text x="0" y="24" font-family="Inter, Arial, sans-serif" font-size="30" font-weight="800" letter-spacing="-2.5" fill="currentColor">vivo</text></svg>
+      </div>
+      <div>
+        <div class="auth-brand-name">Vendor Onboarding Form</div>
+        <div class="auth-brand-sub">Fangs Technology Pvt Ltd · Vivo Tamil Nadu Marketing</div>
+      </div>
+    </div>
+
+    <!-- ROLE SELECTION -->
+    <div id="authLanding">
+      <h1 class="auth-title">Welcome</h1>
+      <p class="auth-subtitle">Choose how you'd like to continue</p>
+      <div class="auth-roles">
+        <button class="auth-role-card" onclick="Auth.enterVendor()">
+          <div class="auth-role-icon vendor">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          </div>
+          <div class="auth-role-title">Vendor Registration</div>
+          <div class="auth-role-desc">Register your company as a vendor. No login required — just fill in your details.</div>
+          <div class="auth-role-cta">Start Registration
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+          </div>
+        </button>
+
+        <button class="auth-role-card" onclick="Auth.showAdminLogin()">
+          <div class="auth-role-icon admin">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          </div>
+          <div class="auth-role-title">Login as Admin</div>
+          <div class="auth-role-desc">Authorized personnel only. Full access to dashboard, analytics, reviews and management.</div>
+          <div class="auth-role-cta">Admin Login
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+          </div>
+        </button>
+      </div>
+    </div>
+
+    <!-- ADMIN LOGIN FORM -->
+    <div id="authAdmin" style="display:none">
+      <button class="auth-back" onclick="Auth.showLanding()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+        Back
+      </button>
+      <div class="auth-login-card">
+        <div class="auth-role-icon admin" style="margin:0 auto 16px">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        </div>
+        <h2 class="auth-login-title">Admin Login</h2>
+        <p class="auth-login-sub">Enter your credentials to access the portal</p>
+        <form onsubmit="Auth.submitAdminLogin(event)">
+          <div class="form-group" style="margin-bottom:14px">
+            <label>Admin Email</label>
+            <input class="form-input" type="email" id="adminUser" placeholder="you@email.com" autocomplete="username" />
+          </div>
+          <div class="form-group" style="margin-bottom:6px">
+            <label>Password</label>
+            <input class="form-input" type="password" id="adminPass" placeholder="Enter password" autocomplete="off" />
+          </div>
+          <div class="auth-error" id="authError"></div>
+          <button type="submit" class="btn btn-primary w-full" id="adminLoginBtn" style="justify-content:center;margin-top:14px">
+            Login
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <div class="auth-footer">© <span id="authYear"></span> Fangs Technology Pvt Ltd · Vivo Tamil Nadu Marketing</div>
+  </div>
+</div>
+
+<!-- ══════════════════════════ SIDEBAR ══════════════════════════ -->
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-brand">
+    <div class="brand-logo">
+      <svg class="vivo-logo" viewBox="0 0 92 30" xmlns="http://www.w3.org/2000/svg"><text x="0" y="24" font-family="Inter, Arial, sans-serif" font-size="30" font-weight="800" letter-spacing="-2.5" fill="currentColor">vivo</text></svg>
+    </div>
+    <div class="brand-text">
+      <span class="brand-name">Vendor Onboarding Form</span>
+      <span class="brand-sub">Fangs Technology</span>
+    </div>
+  </div>
+
+  <nav class="sidebar-nav">
+    <div class="nav-section-label">Main</div>
+    <a class="nav-item active" data-page="dashboard" onclick="navigate('dashboard')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg>
+      <span>Dashboard</span>
+    </a>
+    <a class="nav-item" data-page="vendors" onclick="navigate('vendors')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      <span>Vendor Management</span>
+      <span class="nav-badge" id="pendingBadge">0</span>
+    </a>
+    <a class="nav-item" data-page="analytics" onclick="navigate('analytics')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+      <span>Analytics</span>
+    </a>
+
+    <div class="nav-section-label">Manage</div>
+    <a class="nav-item" data-page="documents" onclick="navigate('documents')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      <span>Documents</span>
+    </a>
+    <a class="nav-item" data-page="settings" onclick="navigate('settings')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>
+      <span>Settings</span>
+    </a>
+  </nav>
+
+  <div class="sidebar-footer">
+    <div class="sidebar-user">
+      <div class="user-avatar">L</div>
+      <div class="user-info">
+        <span class="user-name">LEE</span>
+        <span class="user-role">Super Admin</span>
+      </div>
+      <button class="logout-btn" onclick="Auth.logout()" title="Logout">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      </button>
+    </div>
+  </div>
+</aside>
+
+<!-- ══════════════════════════ MAIN AREA ══════════════════════════ -->
+<div class="main-wrapper" id="mainWrapper">
+
+  <!-- VENDOR-MODE BRAND BAR (shown only to vendors) -->
+  <div class="vendor-brand-bar" id="vendorBrandBar">
+    <div class="vbb-brand">
+      <svg class="vivo-logo" viewBox="0 0 92 30" xmlns="http://www.w3.org/2000/svg"><text x="0" y="24" font-family="Inter, Arial, sans-serif" font-size="30" font-weight="800" letter-spacing="-2.5" fill="currentColor">vivo</text></svg>
+      <div>
+        <div class="vbb-name">Vendor Onboarding Form</div>
+        <div class="vbb-sub">Fangs Technology Pvt Ltd</div>
+      </div>
+    </div>
+    <button class="btn btn-ghost" onclick="Auth.logout()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      Exit
+    </button>
+  </div>
+
+  <!-- TOP NAV -->
+  <header class="topnav">
+    <button class="sidebar-toggle" onclick="toggleSidebar()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    </button>
+    <div class="topnav-search">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      <input type="text" placeholder="Search vendors, documents, analytics…" id="globalSearch" oninput="handleGlobalSearch(this.value)" />
+      <div class="search-results-dropdown" id="searchDropdown"></div>
+    </div>
+    <div class="topnav-actions">
+      <button class="icon-btn" onclick="toggleTheme()" title="Toggle Theme">
+        <svg id="themeIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+      </button>
+      <button class="icon-btn notif-btn" onclick="toggleNotifications()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        <span class="notif-dot" id="notifDot"></span>
+      </button>
+      <div class="notif-dropdown" id="notifDropdown">
+        <div class="notif-header">Notifications</div>
+        <div id="notifList"></div>
+      </div>
+    </div>
+  </header>
+
+  <!-- ═══════════ PAGE: DASHBOARD ═══════════ -->
+  <main class="page active" id="page-dashboard">
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">Dashboard</h1>
+        <p class="page-sub">Vendor Management Overview — <span id="dashDate"></span></p>
+      </div>
+      <div class="page-actions">
+        <button class="btn btn-secondary" onclick="exportVendorList()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Export
+        </button>
+        <button class="btn btn-primary" onclick="navigate('vendors'); setFilter('pending')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          Review Pending
+        </button>
+      </div>
+    </div>
+
+    <!-- STAT CARDS -->
+    <div class="stats-grid" id="statsGrid">
+      <div class="stat-card" data-color="blue">
+        <div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
+        <div class="stat-body">
+          <div class="stat-value" id="statTotal">0</div>
+          <div class="stat-label">Total Vendors</div>
+          <div class="stat-trend up" id="statTotalTrend">+0 this month</div>
+        </div>
+      </div>
+      <div class="stat-card" data-color="green">
+        <div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></div>
+        <div class="stat-body">
+          <div class="stat-value" id="statApproved">0</div>
+          <div class="stat-label">Approved</div>
+          <div class="stat-trend up" id="statApprovedPct">0% approval rate</div>
+        </div>
+      </div>
+      <div class="stat-card" data-color="orange">
+        <div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
+        <div class="stat-body">
+          <div class="stat-value" id="statPending">0</div>
+          <div class="stat-label">Pending Review</div>
+          <div class="stat-trend neutral" id="statPendingLabel">Awaiting action</div>
+        </div>
+      </div>
+      <div class="stat-card" data-color="red">
+        <div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg></div>
+        <div class="stat-body">
+          <div class="stat-value" id="statRejected">0</div>
+          <div class="stat-label">Rejected</div>
+          <div class="stat-trend down" id="statRejectedLabel">0% rejection rate</div>
+        </div>
+      </div>
+      <div class="stat-card" data-color="purple">
+        <div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></div>
+        <div class="stat-body">
+          <div class="stat-value" id="statAvgScore">—</div>
+          <div class="stat-label">Avg. Vendor Score</div>
+          <div class="stat-trend up" id="statScoreLabel">Quality index</div>
+        </div>
+      </div>
+      <div class="stat-card" data-color="teal">
+        <div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg></div>
+        <div class="stat-body">
+          <div class="stat-value" id="statDocComplete">0%</div>
+          <div class="stat-label">Doc Completion</div>
+          <div class="stat-trend neutral" id="statDocLabel">Across all vendors</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CHARTS ROW -->
+    <div class="charts-row">
+      <div class="chart-card large">
+        <div class="chart-header">
+          <h3>Vendor Growth</h3>
+          <div class="chart-legend">
+            <span class="legend-dot blue"></span>Total
+            <span class="legend-dot green"></span>Approved
+          </div>
+        </div>
+        <canvas id="growthChart" height="220"></canvas>
+      </div>
+      <div class="chart-card">
+        <div class="chart-header"><h3>Category Distribution</h3></div>
+        <canvas id="categoryChart" height="220"></canvas>
+      </div>
+    </div>
+
+    <!-- BOTTOM ROW -->
+    <div class="dashboard-bottom">
+      <!-- Recent Vendors -->
+      <div class="glass-card">
+        <div class="card-header">
+          <h3>Recent Vendors</h3>
+          <button class="text-btn" onclick="navigate('vendors')">View all →</button>
+        </div>
+        <div id="recentVendors">
+          <div class="empty-state small">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+            <p>No vendors yet</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Activity Timeline -->
+      <div class="glass-card">
+        <div class="card-header">
+          <h3>Activity Timeline</h3>
+          <button class="text-btn" onclick="clearActivity()">Clear</button>
+        </div>
+        <div id="activityTimeline">
+          <div class="empty-state small">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+            <p>No recent activity</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick Actions -->
+      <div class="glass-card">
+        <div class="card-header"><h3>Quick Actions</h3></div>
+        <div class="quick-actions">
+          <button class="quick-action-btn" onclick="navigate('vendors'); setFilter('pending')">
+            <div class="qa-icon orange"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
+            <span>Review Pending</span>
+          </button>
+          <button class="quick-action-btn" onclick="exportVendorList()">
+            <div class="qa-icon green"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></div>
+            <span>Export List</span>
+          </button>
+          <button class="quick-action-btn" onclick="navigate('analytics')">
+            <div class="qa-icon purple"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div>
+            <span>View Analytics</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- ═══════════ PAGE: VENDORS ═══════════ -->
+  <main class="page" id="page-vendors">
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">Vendor Management</h1>
+        <p class="page-sub">All registered vendors and their status</p>
+      </div>
+      <div class="page-actions">
+        <button class="btn btn-secondary" onclick="exportVendorList()">Export</button>
+      </div>
+    </div>
+
+    <!-- FILTERS -->
+    <div class="filter-bar glass-card">
+      <div class="filter-search">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        <input type="text" placeholder="Search by name, GST, service…" id="vendorSearch" oninput="filterVendors()" />
+      </div>
+      <div class="filter-chips">
+        <button class="filter-chip active" data-filter="all" onclick="setFilter('all')">All</button>
+        <button class="filter-chip" data-filter="draft" onclick="setFilter('draft')">Draft</button>
+        <button class="filter-chip" data-filter="submitted" onclick="setFilter('submitted')">Submitted</button>
+        <button class="filter-chip" data-filter="pending" onclick="setFilter('pending')">Under Review</button>
+        <button class="filter-chip" data-filter="approved" onclick="setFilter('approved')">Approved</button>
+        <button class="filter-chip" data-filter="rejected" onclick="setFilter('rejected')">Rejected</button>
+        <button class="filter-chip" data-filter="blacklisted" onclick="setFilter('blacklisted')">Blacklisted</button>
+      </div>
+      <div class="filter-sort">
+        <select onchange="sortVendors(this.value)">
+          <option value="newest">Newest First</option>
+          <option value="oldest">Oldest First</option>
+          <option value="score">Highest Score</option>
+          <option value="name">Name A–Z</option>
+          <option value="updated">Recently Updated</option>
+        </select>
+      </div>
+    </div>
+
+    <div id="vendorGrid" class="vendor-grid"></div>
+    <div id="vendorEmptyState" class="empty-state" style="display:none">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+      <h3>No vendors found</h3>
+      <p>No vendors match your current filters. Vendors appear here once they self-register through the registration link.</p>
+    </div>
+  </main>
+
+  <!-- ═══════════ PAGE: ONBOARDING WIZARD ═══════════ -->
+  <main class="page" id="page-onboarding">
+    <div class="page-header">
+      <div>
+        <h1 class="page-title" id="wizardTitle">Vendor Onboarding</h1>
+        <p class="page-sub" id="wizardSub">Complete all 10 steps to register a new vendor</p>
+      </div>
+      <div class="page-actions">
+        <button class="btn btn-ghost" onclick="saveDraft()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+          Save Draft
+        </button>
+        <button class="btn btn-ghost text-red" onclick="cancelOnboarding()">Cancel</button>
+      </div>
+    </div>
+
+    <!-- WIZARD CONTAINER -->
+    <div class="wizard-container">
+      <!-- Step Sidebar -->
+      <div class="wizard-steps-sidebar">
+        <div class="wizard-progress-bar">
+          <div class="wizard-progress-fill" id="wizardProgressFill"></div>
+        </div>
+        <div class="wizard-steps-list" id="wizardStepsList"></div>
+      </div>
+
+      <!-- Step Content -->
+      <div class="wizard-content" id="wizardContent">
+        <!-- Steps injected by JS -->
+      </div>
+    </div>
+  </main>
+
+  <!-- ═══════════ PAGE: ANALYTICS ═══════════ -->
+  <main class="page" id="page-analytics">
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">Analytics</h1>
+        <p class="page-sub">Insights and trends across your vendor network</p>
+      </div>
+      <div class="page-actions">
+        <button class="btn btn-secondary" onclick="exportAnalytics()">Export Report</button>
+      </div>
+    </div>
+
+    <div class="analytics-grid">
+      <div class="chart-card">
+        <div class="chart-header"><h3>Monthly Registrations</h3></div>
+        <canvas id="monthlyChart" height="200"></canvas>
+      </div>
+      <div class="chart-card">
+        <div class="chart-header"><h3>Approval Rate</h3></div>
+        <canvas id="approvalChart" height="200"></canvas>
+      </div>
+      <div class="chart-card">
+        <div class="chart-header"><h3>Experience Distribution</h3></div>
+        <canvas id="experienceChart" height="200"></canvas>
+      </div>
+      <div class="chart-card">
+        <div class="chart-header"><h3>Score Distribution</h3></div>
+        <canvas id="scoreDistChart" height="200"></canvas>
+      </div>
+      <div class="chart-card large">
+        <div class="chart-header"><h3>Equipment Popularity</h3></div>
+        <canvas id="equipmentChart" height="200"></canvas>
+      </div>
+      <div class="chart-card">
+        <div class="chart-header"><h3>Service Type Breakdown</h3></div>
+        <canvas id="serviceChart" height="200"></canvas>
+      </div>
+    </div>
+  </main>
+
+  <!-- ═══════════ PAGE: DOCUMENTS ═══════════ -->
+  <main class="page" id="page-documents">
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">Document Center</h1>
+        <p class="page-sub">All vendor documents in one place</p>
+      </div>
+    </div>
+    <div id="documentsList"></div>
+  </main>
+
+  <!-- ═══════════ PAGE: SETTINGS ═══════════ -->
+  <main class="page" id="page-settings">
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">Settings</h1>
+        <p class="page-sub">Configure portal preferences</p>
+      </div>
+    </div>
+    <div class="settings-grid">
+      <div class="glass-card settings-card">
+        <h3>Organization</h3>
+        <div class="form-group">
+          <label>Organization Name</label>
+          <input type="text" value="Fangs Technology Pvt Ltd" class="form-input" />
+        </div>
+        <div class="form-group">
+          <label>Portal Title</label>
+          <input type="text" value="Vendor Management Portal" class="form-input" />
+        </div>
+        <div class="form-group">
+          <label>Admin Email</label>
+          <input type="email" value="admin@fangstechnology.in" class="form-input" />
+        </div>
+        <button class="btn btn-primary">Save Changes</button>
+      </div>
+      <div class="glass-card settings-card">
+        <h3>Data Management</h3>
+        <p class="text-muted">Manage your vendor data and storage.</p>
+        <div class="settings-actions">
+          <button class="btn btn-secondary" onclick="exportVendorList()">Export All Vendors (JSON)</button>
+          <button class="btn btn-secondary" onclick="importVendors()">Import Vendors</button>
+          <button class="btn btn-danger" onclick="confirmClearData()">Clear All Data</button>
+        </div>
+      </div>
+      <div class="glass-card settings-card">
+        <h3>Admin Panel</h3>
+        <p class="text-muted">Admin-only controls for portal management.</p>
+        <div class="form-group">
+          <label>Current Password</label>
+          <input type="password" class="form-input" placeholder="••••••••" />
+        </div>
+        <div class="form-group">
+          <label>New Password</label>
+          <input type="password" class="form-input" placeholder="••••••••" />
+        </div>
+        <button class="btn btn-primary">Update Password</button>
+      </div>
+    </div>
+  </main>
+
+  <!-- ═══════════ PAGE: VENDOR SUCCESS ═══════════ -->
+  <main class="page" id="page-vendorSuccess">
+    <div class="vendor-success">
+      <div class="success-check">
+        <svg viewBox="0 0 52 52"><circle class="sc-circle" cx="26" cy="26" r="24" fill="none"/><path class="sc-tick" fill="none" d="M14 27l8 8 16-16"/></svg>
+      </div>
+      <h1>Registration Submitted!</h1>
+      <p>Thank you for registering with <strong>Fangs Technology Pvt Ltd</strong>. Your details have been received and will be reviewed by our management team. We'll get in touch with you shortly.</p>
+      <div class="vendor-success-ref" id="successRef"></div>
+      <div class="vendor-success-actions">
+        <button class="btn btn-primary" onclick="Auth.startNewVendorRegistration()">Register Another Vendor</button>
+        <button class="btn btn-secondary" onclick="Auth.logout()">Exit Portal</button>
+      </div>
+    </div>
+  </main>
+
+</div><!-- /main-wrapper -->
+
+<!-- ══════════════════════ VENDOR PROFILE MODAL ══════════════════════ -->
+<div class="modal-overlay" id="vendorProfileModal" onclick="closeVendorProfile(event)">
+  <div class="modal-panel profile-panel" onclick="event.stopPropagation()">
+    <button class="modal-close" onclick="closeVendorProfile()">&times;</button>
+    <div id="vendorProfileContent"></div>
+  </div>
+</div>
+
+<!-- ══════════════════════ CONFIRM DIALOG ══════════════════════ -->
+<div class="modal-overlay" id="confirmModal" onclick="closeConfirm(event)">
+  <div class="modal-panel confirm-panel" onclick="event.stopPropagation()">
+    <div class="confirm-icon" id="confirmIcon"></div>
+    <h3 id="confirmTitle">Are you sure?</h3>
+    <p id="confirmMessage">This action cannot be undone.</p>
+    <div class="confirm-actions">
+      <button class="btn btn-secondary" onclick="closeConfirm()">Cancel</button>
+      <button class="btn btn-danger" id="confirmBtn" onclick="executeConfirm()">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST CONTAINER -->
+<div class="toast-container" id="toastContainer"></div>
+
+<script src="script.js"></script>
+</body>
+</html>
