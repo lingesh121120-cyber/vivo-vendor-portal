@@ -7,9 +7,9 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="style.css?v=20260713" />
+  <link rel="stylesheet" href="style.css?v=20260713b" />
   <!-- Firebase bridge (connects the app to the database + admin login) -->
-  <script type="module" src="firebase-init.js?v=20260713"></script>
+  <script type="module" src="firebase-init.js?v=20260713b"></script>
 </head>
 <body>
 
@@ -198,7 +198,11 @@
       <div class="page-actions">
         <button class="btn btn-secondary" onclick="exportVendorList()">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-          Export
+          Export CSV
+        </button>
+        <button class="btn btn-secondary" onclick="exportVendorsPDF()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          Export PDF
         </button>
         <button class="btn btn-primary" onclick="navigate('vendors'); setFilter('pending')">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
@@ -336,7 +340,8 @@
         <p class="page-sub">All registered vendors and their status</p>
       </div>
       <div class="page-actions">
-        <button class="btn btn-secondary" onclick="exportVendorList()">Export</button>
+        <button class="btn btn-secondary" onclick="exportVendorList()">Export CSV</button>
+        <button class="btn btn-secondary" onclick="exportVendorsPDF()">Export PDF</button>
       </div>
     </div>
 
@@ -550,6 +555,6 @@
 <!-- TOAST CONTAINER -->
 <div class="toast-container" id="toastContainer"></div>
 
-<script src="script.js?v=20260713"></script>
+<script src="script.js?v=20260713b"></script>
 </body>
 </html>

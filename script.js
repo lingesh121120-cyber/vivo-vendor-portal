@@ -2176,6 +2176,71 @@ function exportVendorList() {
   downloadFile(csv, 'vendors_full_export.csv', 'text/csv;charset=utf-8;');
   toast(`Exported ${vendors.length} vendors — all fields`, 'success');
 }
+// Full vendor report as a print-ready page → "Save as PDF" in the print dialog
+function exportVendorsPDF() {
+  const vendors = DataStore.getAll();
+  if (!vendors.length) { toast('No vendors to export', 'warning'); return; }
+
+  const arr = a => (Array.isArray(a) && a.length) ? a.map(esc).join(', ') : '—';
+  const val = x => (x === undefined || x === null || x === '') ? '—' : esc(x);
+  const row = (label, value) => `<tr><td class="lbl">${label}</td><td>${value}</td></tr>`;
+  const projList = v => (v.projects || []).length
+    ? v.projects.map((p, i) => `<div class="proj"><b>${esc(p.brand || 'Project ' + (i + 1))}</b> — ${p.link ? esc(p.link) : ''} [${esc(p.status || '')}] ${esc(p.startDate || '')}${p.endDate ? ' to ' + esc(p.endDate) : ''}${p.description ? '<br>' + esc(p.description) : ''}</div>`).join('')
+    : '—';
+  const docList = v => {
+    const ds = DOC_CHECKLIST.filter(d => (v.documents || {})[d.id]);
+    return ds.length ? ds.map(d => `${d.name} (${esc((v.documents[d.id].name) || 'file')})`).join('<br>') : '—';
+  };
+  const section = (title, rows) => `<h3>${title}</h3><table class="detail">${rows}</table>`;
+
+  const vendorHtml = v => {
+    const s = computeScore(v);
+    return `<div class="vendor">
+      <div class="vhead">
+        <div class="vname">${val(v.companyName)}</div>
+        <div class="vmeta">${val(v.brandName)} &middot; ${val(v.businessType)} &middot; ${STATUS_LABELS[v.status] || esc(v.status)}${s.total ? ' &middot; Score ' + s.total + '/100 (' + s.grade + ')' : ''}</div>
+      </div>
+      ${section('Company', row('Company/Firm', val(v.companyName)) + row('Brand', val(v.brandName)) + row('Type', val(v.businessType)) + row('Established', val(v.yearEstablished)) + row('Services', val(v.natureOfServices)))}
+      ${section('Contact', row('Contact Person', val(v.contactPerson)) + row('Designation', val(v.designation)) + row('Mobile', val(v.mobile)) + row('Email', val(v.email)) + row('Website', val(v.website)) + row('City', val(v.city)) + row('Address', val(v.officeAddress)) + row('Instagram', val(v.instagram)) + row('YouTube', val(v.youtube)))}
+      ${section('Business &amp; Work', row('Experience', val(v.yearsExperience) + (v.yearsExperience ? ' yrs' : '')) + row('Team Size', val(v.teamSize)) + row('Major Clients', val(v.majorClients)) + row('Portfolio', val(v.portfolioLink)) + row('Projects', projList(v)))}
+      ${section('Technical', row('Primary Camera', arr(v.primaryCamera)) + row('Backup Camera', arr(v.backupCamera)) + row('Lens', arr(v.lens)) + row('Lighting', arr(v.lighting)) + row('Audio', arr(v.audio)) + row('Drone', val(v.droneModel)) + row('Gimbal', val(v.gimbal)) + row('Resolution', val(v.recordingResolution)) + row('Frame Rates', val(v.frameRates)) + row('Editing Software', arr(v.editingSoftware)) + row('AI Tools', arr(v.aiTools)) + row('Motion Graphics', arr(v.motionGraphics)) + row('Colour Grading', arr(v.colourGrading)) + row('RAW Footage', val(v.rawFootage)) + row('Editable Files', val(v.editableFiles)) + row('Delivery Formats', val(v.deliveryFormats)) + row('Turnaround', val(v.turnaroundTime)))}
+      ${section('Creative', row('Editing Style', val(v.editingStyle)) + row('Urgent Delivery', val(v.urgentDelivery)) + row('Weekend Availability', val(v.weekendAvailability)) + row('Tight Deadline', val(v.tightDeadline)) + row('Communication', val(v.communicationPlatform)) + row('Feedback', val(v.feedbackMethod)) + row('Response Time', val(v.responseTime)) + row('File Sharing', val(v.fileSharingPlatform)) + row('Specialization', val(v.contentSpecialization)) + row('Strengths', val(v.uniqueStrengths)) + row('Best Videos', val(v.bestVideos)))}
+      ${section('Commercial', row('Production Cost', val(v.productionCost)) + row('Travel Charges', val(v.travelCharges)) + row('GST Included', val(v.gstIncluded)) + row('Rate Card', val(v.rateCard)) + row('Payment Terms', val(v.paymentTerms)) + row('Currency', val(v.currency)))}
+      ${section('Bank', row('Account Holder', val(v.accountHolder)) + row('Bank', val(v.bankName)) + row('Account No.', val(v.accountNumber)) + row('IFSC', val(v.ifsc)))}
+      ${section('Legal', row('GST', val(v.gstNumber)) + row('PAN', val(v.panNumber)))}
+      ${section('Documents Attached', row('Files', docList(v)))}
+      ${section('Record', row('Declaration Name', val(v.vendorName)) + row('Signatory', val(v.authorizedSignatory)) + row('Date', val(v.declarationDate)) + row('Registered', v.createdAt ? fmtDate(v.createdAt) : '—') + row('Updated', v.updatedAt ? fmtDate(v.updatedAt) : '—'))}
+    </div>`;
+  };
+
+  const w = window.open('', '_blank');
+  if (!w) { toast('Please allow pop-ups for this site, then try again', 'error', 6000); return; }
+  w.document.write(`<html><head><title>Vendor Report</title><meta charset="utf-8"><style>
+    *{box-sizing:border-box} body{font-family:Arial,Helvetica,sans-serif;color:#0f172a;margin:0;padding:28px}
+    .rhead{border-bottom:3px solid #2563eb;padding-bottom:12px;margin-bottom:20px}
+    .rhead h1{color:#1e3a8a;margin:0 0 4px;font-size:22px}
+    .rhead p{margin:0;color:#666;font-size:12px}
+    .vendor{page-break-after:always}
+    .vendor:last-child{page-break-after:auto}
+    .vhead{background:#1e3a8a;color:#fff;padding:12px 16px;border-radius:8px;margin-bottom:10px}
+    .vname{font-size:18px;font-weight:800}
+    .vmeta{font-size:12px;opacity:.9;margin-top:2px}
+    h3{color:#2563eb;font-size:13px;margin:14px 0 4px;border-bottom:1px solid #e5e7eb;padding-bottom:3px}
+    table.detail{width:100%;border-collapse:collapse;font-size:12px}
+    table.detail td{padding:4px 8px;border-bottom:1px solid #f1f5f9;vertical-align:top}
+    td.lbl{color:#666;width:160px;font-weight:600}
+    .proj{margin-bottom:6px}
+    @media print{ body{padding:0} }
+  </style></head><body>
+    <div class="rhead"><h1>Vivo Vendor Onboarding &mdash; Vendor Report</h1>
+    <p>Fangs Technology Pvt Ltd &middot; Generated ${esc(new Date().toLocaleString('en-IN'))} &middot; ${vendors.length} vendor(s)</p></div>
+    ${vendors.map(vendorHtml).join('')}
+  </body></html>`);
+  w.document.close();
+  setTimeout(() => w.print(), 500);
+  toast('Opening report — choose "Save as PDF" in the print dialog', 'info', 5000);
+}
+
 function exportAnalytics() {
   const vendors = DataStore.getAll();
   const report = {
