@@ -11,7 +11,7 @@ import {
   setPersistence, browserSessionPersistence
 } from "https://www.gstatic.com/firebasejs/10.14.0/firebase-auth.js";
 import {
-  getDatabase, ref, set, remove, onValue
+  getDatabase, ref, set, remove, onValue, get, update
 } from "https://www.gstatic.com/firebasejs/10.14.0/firebase-database.js";
 
 const firebaseConfig = {
@@ -43,6 +43,12 @@ window.FB = {
   // Write the full vendor object at vendors/<id>
   setVendor: (id, obj) => set(ref(db, 'vendors/' + id), obj),
   removeVendor: (id) => remove(ref(db, 'vendors/' + id)),
+
+  // Document files (base64) live separately under vendorDocs/<id>, loaded on demand.
+  // update() merges keys so admin edits don't wipe existing files.
+  setVendorDocs: (id, obj) => update(ref(db, 'vendorDocs/' + id), obj),
+  getVendorDocs: (id) => get(ref(db, 'vendorDocs/' + id)).then(s => s.val() || {}),
+  removeVendorDocs: (id) => remove(ref(db, 'vendorDocs/' + id)),
 
   // Live listener: cb receives the full vendor array on every change
   subscribeVendors: (cb) => {

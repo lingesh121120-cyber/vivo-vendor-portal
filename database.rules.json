@@ -11,6 +11,15 @@
         ".write": "auth != null || (!data.exists() && newData.exists())",
         ".validate": "newData.hasChildren(['companyName', 'status'])"
       }
+    },
+
+    "vendorDocs": {
+      ".read": "auth != null",
+      ".write": "auth != null",
+
+      "$vendorId": {
+        ".write": "auth != null || (!data.exists() && newData.exists())"
+      }
     }
   }
 }

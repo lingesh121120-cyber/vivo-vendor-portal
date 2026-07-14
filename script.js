@@ -65,13 +65,17 @@ const DataStore = {
     if (window.FB) {
       window.FB.removeVendor(id)
         .catch(e => toast('Delete failed: ' + (e.code || e.message), 'error', 5000));
+      window.FB.removeVendorDocs(id).catch(() => {});
     }
   },
-  // Admin "Clear all" — removes every vendor node from Firebase
+  // Admin "Clear all" — removes every vendor node (and its documents) from Firebase
   clearAll() {
     const ids = this.cache.map(v => v.id);
     this.cache = [];
-    if (window.FB) ids.forEach(id => window.FB.removeVendor(id).catch(() => {}));
+    if (window.FB) ids.forEach(id => {
+      window.FB.removeVendor(id).catch(() => {});
+      window.FB.removeVendorDocs(id).catch(() => {});
+    });
     localStorage.removeItem(this.ACTIVITY_KEY);
   },
 
@@ -203,7 +207,7 @@ function friendlyAuthError(err) {
 }
 
 function startFreshWizard() {
-  State.wizard = { step: 0, maxStep: 0, editingId: null, data: { id: uid(), status: 'draft', projects: [] } };
+  State.wizard = { step: 0, maxStep: 0, editingId: null, data: { id: uid(), status: 'draft', projects: [] }, docFiles: {} };
 }
 
 /* ═══════════════════ CONSTANTS ═══════════════════ */
@@ -1475,29 +1479,72 @@ function refreshTagContainer(key) {
 
 /* ── Doc Upload Handling ── */
 function attachDocUploads() {
+  const MAX_BYTES = 1024 * 1024; // 1 MB per file — protects the free database storage
   $$('[data-docupload]').forEach(input => {
     input.addEventListener('change', e => {
       const file = e.target.files[0];
       if (!file) return;
       const docId = input.dataset.docupload;
-      const sizeStr = (file.size / 1024 / 1024).toFixed(2) + ' MB';
-      if (!State.wizard.data.documents) State.wizard.data.documents = {};
-      // NOTE: For Firebase, upload file to Storage here and store the URL.
-      State.wizard.data.documents[docId] = { name: file.name, size: sizeStr, uploadedAt: Date.now() };
-      const item = $(`.doc-item[data-doc="${docId}"]`);
-      item.classList.add('uploaded');
-      item.classList.remove('error');
-      $(`[data-doc-status="${docId}"]`).textContent = `${file.name} · ${sizeStr}`;
-      if (!item.querySelector('.doc-success-check')) {
-        const check = document.createElement('span');
-        check.className = 'doc-success-check';
-        check.textContent = '✓';
-        input.closest('.doc-item-actions').insertBefore(check, input.closest('.doc-upload-btn'));
+      if (file.size > MAX_BYTES) {
+        toast(`"${file.name}" is ${(file.size / 1024 / 1024).toFixed(1)} MB — the limit is 1 MB. Please compress it and try again.`, 'error', 6000);
+        input.value = '';
+        return;
       }
-      input.closest('.doc-upload-btn').firstChild.textContent = 'Replace ';
-      toast(`${file.name} attached`, 'success', 2000);
+      const sizeStr = (file.size / 1024 / 1024).toFixed(2) + ' MB';
+      const reader = new FileReader();
+      reader.onload = () => {
+        if (!State.wizard.data.documents) State.wizard.data.documents = {};
+        if (!State.wizard.docFiles) State.wizard.docFiles = {};
+        // Metadata goes on the vendor record; the actual file (base64) is kept
+        // separately and written to vendorDocs/<id> on submit.
+        State.wizard.data.documents[docId] = { name: file.name, size: sizeStr, uploadedAt: Date.now() };
+        State.wizard.docFiles[docId] = reader.result;
+        const item = $(`.doc-item[data-doc="${docId}"]`);
+        item.classList.add('uploaded');
+        item.classList.remove('error');
+        $(`[data-doc-status="${docId}"]`).textContent = `${file.name} · ${sizeStr}`;
+        if (!item.querySelector('.doc-success-check')) {
+          const check = document.createElement('span');
+          check.className = 'doc-success-check';
+          check.textContent = '✓';
+          input.closest('.doc-item-actions').insertBefore(check, input.closest('.doc-upload-btn'));
+        }
+        input.closest('.doc-upload-btn').firstChild.textContent = 'Replace ';
+        toast(`${file.name} attached`, 'success', 2000);
+      };
+      reader.onerror = () => toast('Could not read that file, please try again', 'error');
+      reader.readAsDataURL(file);
     });
   });
+}
+
+// Base64 data-URL → Blob (for viewing/downloading stored documents)
+function dataURLtoBlob(dataUrl) {
+  const [head, b64] = dataUrl.split(',');
+  const mime = (head.match(/:(.*?);/) || [])[1] || 'application/octet-stream';
+  const bin = atob(b64);
+  const arr = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+  return new Blob([arr], { type: mime });
+}
+
+// Admin: fetch a vendor's stored document on demand and open/download it
+const _docCache = {};
+async function viewVendorDoc(vendorId, docKey, filename) {
+  if (!window.FB) { toast('Not connected — try again in a moment', 'error'); return; }
+  toast('Loading document…', 'info', 1500);
+  try {
+    let docs = _docCache[vendorId];
+    if (!docs) { docs = await window.FB.getVendorDocs(vendorId); _docCache[vendorId] = docs; }
+    const dataUrl = docs && docs[docKey];
+    if (!dataUrl) { toast("This file wasn't stored (older submission). Ask the vendor to re-upload.", 'warning', 5000); return; }
+    const url = URL.createObjectURL(dataURLtoBlob(dataUrl));
+    const w = window.open(url, '_blank');
+    if (!w) { const a = document.createElement('a'); a.href = url; a.download = filename || 'document'; a.click(); }
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
+  } catch (e) {
+    toast('Could not load the document: ' + (e.code || e.message), 'error', 5000);
+  }
 }
 
 /* ── Save Current Step ──
@@ -1661,18 +1708,20 @@ function submitVendor() {
   if (btn) { btn.disabled = true; btn.textContent = 'Submitting…'; }
 
   // Write to Firebase (vendor = unauthenticated create; admin = authenticated write)
+  const filesToSave = State.wizard.docFiles || {};
   window.FB.setVendor(d.id, d)
+    .then(() => Object.keys(filesToSave).length ? window.FB.setVendorDocs(d.id, filesToSave) : null)
     .then(() => {
       DataStore.logActivity(`New vendor <strong>${esc(d.companyName)}</strong> submitted for review`, 'green');
       if (isVendor) {
         localStorage.removeItem(DataStore.DRAFT_KEY);
         const ref = $('#successRef');
         if (ref) ref.textContent = 'Reference ID: ' + refId;
-        State.wizard = { step: 0, maxStep: 0, editingId: null, data: {} };
+        State.wizard = { step: 0, maxStep: 0, editingId: null, data: {}, docFiles: {} };
         navigate('vendorSuccess');
       } else {
         toast('Vendor saved successfully! 🎉', 'success', 4000);
-        State.wizard = { step: 0, maxStep: 0, editingId: null, data: {} };
+        State.wizard = { step: 0, maxStep: 0, editingId: null, data: {}, docFiles: {} };
         navigate('vendors');
       }
     })
@@ -1701,7 +1750,7 @@ function editVendor(id) {
   const v = DataStore.get(id);
   if (!v) return;
   // Admin editing an existing vendor may jump between any step freely
-  State.wizard = { step: 0, maxStep: WIZARD_STEPS.length - 1, editingId: id, data: JSON.parse(JSON.stringify(v)) };
+  State.wizard = { step: 0, maxStep: WIZARD_STEPS.length - 1, editingId: id, data: JSON.parse(JSON.stringify(v)), docFiles: {} };
   closeVendorProfile();
   navigate('onboarding');
   toast(`Editing ${v.companyName}`, 'info');
@@ -1902,10 +1951,14 @@ function profileDocuments(v) {
   return `<div class="doc-checklist">
     ${DOC_CHECKLIST.map(doc => {
       const up = docs[doc.id];
+      const fname = up ? esc(up.name).replace(/'/g, "\\'") : '';
       return `<div class="doc-item ${up ? 'uploaded' : ''}">
         <div class="doc-item-icon ${doc.type === 'img' ? 'img' : 'pdf'}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>
         <div><div class="doc-item-name">${doc.name}</div><div class="doc-item-status">${up ? esc(up.name) + ' · ' + up.size : 'Not submitted'}</div></div>
-        <div class="doc-item-actions">${doc.required ? '<span class="doc-recommended">Recommended</span>' : '<span class="doc-optional">Optional</span>'}${up ? '<span class="doc-success-check">✓</span>' : ''}</div>
+        <div class="doc-item-actions">
+          ${doc.required ? '<span class="doc-recommended">Recommended</span>' : '<span class="doc-optional">Optional</span>'}
+          ${up ? `<button class="doc-upload-btn" onclick="viewVendorDoc('${v.id}','${doc.id}','${fname}')">View / Download</button><span class="doc-success-check">✓</span>` : ''}
+        </div>
       </div>`;
     }).join('')}
   </div>`;
