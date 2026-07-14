@@ -2088,16 +2088,93 @@ function renderDocuments() {
 function exportVendorList() {
   const vendors = DataStore.getAll();
   if (!vendors.length) { toast('No vendors to export', 'warning'); return; }
-  // Export as CSV
-  const cols = ['companyName', 'brandName', 'businessType', 'contactPerson', 'mobile', 'email', 'city', 'yearsExperience', 'gstNumber', 'panNumber', 'status'];
-  const header = cols.join(',');
-  const rows = vendors.map(v => cols.map(c => {
-    const val = (v[c] || '').toString().replace(/"/g, '""');
-    return `"${val}"`;
-  }).join(','));
-  const csv = [header, ...rows].join('\n');
-  downloadFile(csv, 'vendors_export.csv', 'text/csv');
-  toast(`Exported ${vendors.length} vendors to CSV`, 'success');
+
+  // Helpers to flatten arrays / nested data into single CSV cells
+  const arr = a => Array.isArray(a) ? a.join('; ') : (a || '');
+  const docsList = v => DOC_CHECKLIST.filter(d => (v.documents || {})[d.id])
+    .map(d => `${d.name} (${(v.documents[d.id].name) || 'file'})`).join('; ');
+  const projList = v => (v.projects || []).map((p, i) =>
+    `${p.brand || 'Project ' + (i + 1)} — ${p.link || ''} [${p.status || ''}] ${p.startDate || ''}${p.endDate ? ' to ' + p.endDate : ''}${p.description ? ': ' + p.description : ''}`
+  ).join('  ||  ');
+
+  // Every field a vendor fills, in a sensible order, with readable headers
+  const cols = [
+    ['Company/Firm Name', v => v.companyName],
+    ['Brand Name', v => v.brandName],
+    ['Type of Business', v => v.businessType],
+    ['Year of Establishment', v => v.yearEstablished],
+    ['Nature of Services', v => v.natureOfServices],
+    ['Contact Person', v => v.contactPerson],
+    ['Designation', v => v.designation],
+    ['Mobile', v => v.mobile],
+    ['Email', v => v.email],
+    ['Website', v => v.website],
+    ['City', v => v.city],
+    ['Office Address', v => v.officeAddress],
+    ['Instagram', v => v.instagram],
+    ['YouTube', v => v.youtube],
+    ['Years of Experience', v => v.yearsExperience],
+    ['Team Size', v => v.teamSize],
+    ['Major Clients', v => v.majorClients],
+    ['Portfolio Link', v => v.portfolioLink],
+    ['Previous/Present Work', v => projList(v)],
+    ['Primary Camera(s)', v => arr(v.primaryCamera)],
+    ['Backup Camera(s)', v => arr(v.backupCamera)],
+    ['Drone Model', v => v.droneModel],
+    ['Gimbal', v => v.gimbal],
+    ['Lighting', v => arr(v.lighting)],
+    ['Audio', v => arr(v.audio)],
+    ['Lens Kit', v => arr(v.lens)],
+    ['Recording Resolution', v => v.recordingResolution],
+    ['Frame Rates', v => v.frameRates],
+    ['Editing Software', v => arr(v.editingSoftware)],
+    ['AI Tools', v => arr(v.aiTools)],
+    ['Motion Graphics', v => arr(v.motionGraphics)],
+    ['Colour Grading', v => arr(v.colourGrading)],
+    ['RAW Footage', v => v.rawFootage],
+    ['Editable Files', v => v.editableFiles],
+    ['Delivery Formats', v => v.deliveryFormats],
+    ['Turnaround Time', v => v.turnaroundTime],
+    ['Editing Style', v => v.editingStyle],
+    ['Urgent Delivery', v => v.urgentDelivery],
+    ['Weekend Availability', v => v.weekendAvailability],
+    ['Tight Deadline', v => v.tightDeadline],
+    ['Communication Platform', v => v.communicationPlatform],
+    ['Feedback Method', v => v.feedbackMethod],
+    ['Response Time', v => v.responseTime],
+    ['File Sharing Platform', v => v.fileSharingPlatform],
+    ['Content Specialization', v => v.contentSpecialization],
+    ['Unique Strengths', v => v.uniqueStrengths],
+    ['Best Video Links', v => v.bestVideos],
+    ['Production Cost', v => v.productionCost],
+    ['Travel Charges', v => v.travelCharges],
+    ['GST Included', v => v.gstIncluded],
+    ['Rate Card', v => v.rateCard],
+    ['Payment Terms', v => v.paymentTerms],
+    ['Currency', v => v.currency],
+    ['Account Holder', v => v.accountHolder],
+    ['Bank Name', v => v.bankName],
+    ['Account Number', v => v.accountNumber],
+    ['IFSC', v => v.ifsc],
+    ['GST Number', v => v.gstNumber],
+    ['PAN Number', v => v.panNumber],
+    ['Documents Provided', v => docsList(v)],
+    ['Declaration Name', v => v.vendorName],
+    ['Authorized Signatory', v => v.authorizedSignatory],
+    ['Declaration Date', v => v.declarationDate],
+    ['Status', v => STATUS_LABELS[v.status] || v.status],
+    ['Admin Score', v => { const s = computeScore(v); return s.total ? `${s.total}/100 (${s.grade})` : ''; }],
+    ['Registered On', v => v.createdAt ? fmtDate(v.createdAt) : ''],
+    ['Last Updated', v => v.updatedAt ? fmtDate(v.updatedAt) : '']
+  ];
+
+  const cell = val => `"${(val === undefined || val === null ? '' : String(val)).replace(/"/g, '""')}"`;
+  const header = cols.map(c => cell(c[0])).join(',');
+  const rows = vendors.map(v => cols.map(c => cell(c[1](v))).join(','));
+  // BOM + CRLF so Excel opens UTF-8 (₹, names) and rows correctly
+  const csv = '﻿' + [header, ...rows].join('\r\n');
+  downloadFile(csv, 'vendors_full_export.csv', 'text/csv;charset=utf-8;');
+  toast(`Exported ${vendors.length} vendors — all fields`, 'success');
 }
 function exportAnalytics() {
   const vendors = DataStore.getAll();
